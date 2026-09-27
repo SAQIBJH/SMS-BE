@@ -90,18 +90,16 @@ gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo saeedafri/SMS-BE
 (paste the printed token when prompted, or pipe it in) — this needs you to
 have `admin` on this repo, which as the repo owner you do.
 
-### 4. Generate a read-only PAT for the frontend repo, and store it
+### 4. `SOURCE_REPO_READ_TOKEN` — we'll send you this one, you just store it
 
-This is the one step with no CLI equivalent at all — GitHub only lets you mint
-a new fine-grained PAT through the website:
+**Correction from an earlier version of this doc:** this can't be something
+you generate yourself — a fine-grained PAT can only be scoped to a repo the
+*creator* has access to, and you don't have access to our frontend repo. So
+**we're generating it** (Contents: Read-only, scoped only to
+`SAQIBJH/sms-platform-frontend`) and will send you the value directly
+(not over this PR — somewhere private, like Slack/DM).
 
-1. Go to <https://github.com/settings/personal-access-tokens/new>
-2. Token name: anything, e.g. `relay-bridge-source-read`
-3. Repository access → "Only select repositories" → `SAQIBJH/sms-platform-frontend`
-4. Permissions → Repository permissions → **Contents: Read-only**
-5. Generate token, copy the value
-
-Then either paste it to your Claude Code and let it run:
+Once you have it, either paste it to your Claude Code and let it run:
 
 ```bash
 gh secret set SOURCE_REPO_READ_TOKEN --repo saeedafri/SMS-BE
@@ -109,6 +107,24 @@ gh secret set SOURCE_REPO_READ_TOKEN --repo saeedafri/SMS-BE
 
 or add it yourself under Settings → Secrets and variables → Actions → New
 repository secret.
+
+### 4b. What we need back from you: a dispatch token for this repo
+
+This is the other half of the same problem, mirrored: for us to trigger this
+workflow at all (fire `repository_dispatch` on `saeedafri/SMS-BE`), we need a
+token with write access to *this* repo — and we don't have that access
+ourselves (we only have read/pull, verified via the API). Only you can create
+this one, the same way, in reverse:
+
+1. Go to <https://github.com/settings/personal-access-tokens/new>
+2. Token name: anything, e.g. `relay-bridge-dispatch`
+3. Repository access → "Only select repositories" → `saeedafri/SMS-BE`
+4. Permissions → Repository permissions → **Contents: Read and write**
+5. Generate token, copy the value, send it to us the same private way (not
+   as a PR comment)
+
+We'll set it locally as `RELAY_BRIDGE_DISPATCH_TOKEN` when we run
+`send_handoff.py`. Nothing works end-to-end until we have this.
 
 ### 5. (Optional) test-tunnel SSH key, only if you want the remote suite in CI
 
