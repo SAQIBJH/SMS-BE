@@ -10,21 +10,29 @@
 
 We've built a small tool, **relay-bridge**, that lets the frontend and backend
 teams hand work off to each other's Claude Code session automatically —
-no more manually copying a handoff doc into a chat. When we finish something
-you need to act on, we run one command; a GitHub Action in this repo picks it
-up, runs your Claude Code against it, and opens a PR here for you to review.
-You never have to be at your laptop for it to happen.
+fully automatically, both directions: nobody runs a command, nobody copies a
+handoff doc into a chat. Commit a handoff file, push it, and the other side's
+Claude Code picks it up, does the work, and opens a PR for review. Nobody
+needs to be at their laptop for any of it.
 
-Full design + source: <https://github.com/SAQIBJH/relay-bridge> (private repo —
-tell us your GitHub username if you want access, or just read this handoff,
-it's self-contained).
+Full design + source: <https://github.com/SAQIBJH/relay-bridge> (we've
+invited your GitHub account as a collaborator so you can clone it — accept
+the invite, then `git clone` gets you `send_handoff.py` for manual/ad-hoc
+sends, though you shouldn't need it day to day once this is set up).
 
-**This PR already contains the one piece we could set up ourselves:**
-`.github/workflows/handoff.yml`. Everything below is what's left, and it's
-written so your own Claude Code — given permission — can run almost all of it
-itself. Paste this file's path to your Claude Code session and say "do this,"
-and it can execute every command below; the only things that need *you*
-specifically are two browser approval clicks, which are called out clearly.
+**This PR already contains both pieces for this repo:**
+- `.github/workflows/handoff.yml` — receives a handoff *from* us and runs your
+  Claude Code against it.
+- `.github/workflows/handoff-sender.yml` — automatically sends a handoff *to*
+  us the moment you push a `docs/HANDOFF_TO_UI_*.md` file (your own existing
+  naming convention — nothing changes about how you already work). No command
+  to run; it just fires on push.
+
+Everything below is what's left, and it's written so your own Claude Code —
+given permission — can run almost all of it itself. Paste this file's path to
+your Claude Code session and say "do this," and it can execute every command
+below; the only things that need *you* specifically are two browser approval
+clicks, which are called out clearly.
 
 ## What we could NOT do from our side, and why
 
@@ -133,8 +141,22 @@ So, two tokens, both scoped to `saeedafri/SMS-BE`, both generated the same way:
 4. Send us both values the same private way (not as a PR comment) — tell us
    clearly which is which
 
-We'll set it locally as `RELAY_BRIDGE_DISPATCH_TOKEN` when we run
-`send_handoff.py`. Nothing works end-to-end until we have this.
+We'll store the dispatch one as a repo secret in our own frontend repo (so our
+`handoff-sender.yml` can use it automatically). Nothing works end-to-end until
+we have this.
+
+### 4c. What you need to store here: our dispatch token, for your sender to work
+
+Symmetrically, `handoff-sender.yml` (added in this PR) needs a secret
+`RELAY_BRIDGE_DISPATCH_TOKEN` **in this repo** — a token with write access to
+*our* frontend repo, so it can dispatch to us when you push a handoff. We're
+generating this ourselves (same reasoning as 4b, reversed: only we can mint a
+token scoped to our own repo) and will send it to you the same private way.
+Once you have it:
+
+```bash
+gh secret set RELAY_BRIDGE_DISPATCH_TOKEN --repo saeedafri/SMS-BE
+```
 
 ### 5. (Optional) test-tunnel SSH key, only if you want the remote suite in CI
 
@@ -161,17 +183,16 @@ Once secrets are in place, merge it. The workflow is live from that point.
 
 ## How to test it
 
-Ask the frontend team (us) to send a trivial test handoff once you've merged
-and added the secrets — we'll run `send_handoff.py` and you should see a PR
-appear here within a minute or two of the dispatch firing. Check the Actions
-tab if it doesn't.
+Once you've merged and added the secrets, push a trivial test file matching
+`docs/HANDOFF_TO_UI_*.md` from your side, or ask us to push a
+`docs/HANDOFF_TO_BACKEND_*.md` test file from ours — either way, watch the
+Actions tab of the receiving repo. A PR should appear within a minute or two
+of the push, with no command run by hand.
 
-## Once this direction works, the reverse direction is symmetric
+## The reverse direction is already wired up too
 
-If you also want to send handoffs from here to the frontend repo, the same
-toolkit does it — you'd need `send_handoff.py` from
-<https://github.com/SAQIBJH/relay-bridge> on your machine, a PAT with write
-access to `SAQIBJH/sms-platform-frontend` to fire the dispatch, and the
-frontend repo would need its own `handoff-workflow.yml` + secrets (mirroring
-steps 2–6 above, but on their side). Ask us when you're ready and we'll set
-up our end.
+We've already added `handoff.yml` and `handoff-sender.yml` to our own
+frontend repo (mirroring what's in this PR), so once the token exchange in
+steps 4/4b/4c is done, **both directions run fully automatically**: you commit
+a `docs/HANDOFF_TO_UI_*.md` file and push — that's it, it reaches our Claude
+Code with no command from you. Same for us sending to you.
