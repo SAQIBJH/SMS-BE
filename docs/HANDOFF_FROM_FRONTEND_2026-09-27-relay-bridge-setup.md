@@ -108,20 +108,30 @@ gh secret set SOURCE_REPO_READ_TOKEN --repo saeedafri/SMS-BE
 or add it yourself under Settings → Secrets and variables → Actions → New
 repository secret.
 
-### 4b. What we need back from you: a dispatch token for this repo
+### 4b. What we need back from you: TWO tokens for this repo
 
-This is the other half of the same problem, mirrored: for us to trigger this
-workflow at all (fire `repository_dispatch` on `saeedafri/SMS-BE`), we need a
-token with write access to *this* repo — and we don't have that access
-ourselves (we only have read/pull, verified via the API). Only you can create
-this one, the same way, in reverse:
+**Second correction:** we tried to generate a read-only token scoped to this
+repo ourselves too (for our own `SOURCE_REPO_READ_TOKEN`, used when *you* send
+a handoff to *us* — the reverse direction). Turned out we can't — a
+fine-grained PAT can only be scoped to a repo you own, or one under an
+organization that allows it. This repo is under your personal account, so
+even though we're a collaborator with read access, it doesn't show up in our
+"select repositories" list at all. Only you can create a token scoped to your
+own repo, full stop — regardless of what permission level it grants.
+
+So, two tokens, both scoped to `saeedafri/SMS-BE`, both generated the same way:
 
 1. Go to <https://github.com/settings/personal-access-tokens/new>
-2. Token name: anything, e.g. `relay-bridge-dispatch`
-3. Repository access → "Only select repositories" → `saeedafri/SMS-BE`
-4. Permissions → Repository permissions → **Contents: Read and write**
-5. Generate token, copy the value, send it to us the same private way (not
-   as a PR comment)
+2. Repository access → "Only select repositories" → `saeedafri/SMS-BE`
+3. Generate **two separate tokens** (give each a distinct name in the "Token
+   name" field — that name is just for your own reference, it doesn't need to
+   match anything):
+   - One with Permissions → Repository permissions → **Contents: Read-only**
+     — this is our `SOURCE_REPO_READ_TOKEN`
+   - One with Permissions → Repository permissions → **Contents: Read and
+     write** — this is our dispatch token
+4. Send us both values the same private way (not as a PR comment) — tell us
+   clearly which is which
 
 We'll set it locally as `RELAY_BRIDGE_DISPATCH_TOKEN` when we run
 `send_handoff.py`. Nothing works end-to-end until we have this.
